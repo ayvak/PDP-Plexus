@@ -19,14 +19,7 @@ import numpy as np
 import gradio as gr
 from sklearn import preprocessing
 
-from keras.layers import Dropout
-from keras.layers import Convolution2D
-from keras.layers import MaxPooling2D
-from keras import backend as K
-import pandas as pd
-from keras.optimizers import SGD
-
-model = load_model("MNIST")
+model = load_model("PDP_NN")
 def classify(image):
     #print(image.shape)
     image = image/255.0

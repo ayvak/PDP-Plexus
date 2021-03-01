@@ -14,7 +14,6 @@ from keras.layers import Dense
 from keras.layers import Flatten
 from keras.utils import to_categorical
 import numpy as np
-import gradio as gr
 from sklearn import preprocessing
 
 from keras.layers import Dropout
@@ -65,18 +64,4 @@ model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accur
 model.fit(trainX, trainY, validation_data = (testX,testY), epochs = 15, shuffle= True, verbose = 2, batch_size= 128)
 
 #validation test
-model.save("MNIST")
-
-def classify(image):
-    #print(image.shape)
-    image = image/255.0
-    image = preprocessing.normalize(image)
-    print(image)
-    prediction = model.predict(image.reshape(1,28,28,1)).tolist()[0]
-    print(f"prediction : {prediction}")
-    return {str(i): prediction[i] for i in range(10)}
-sketchpad = gr.inputs.Sketchpad()
-label = gr.outputs.Label(num_top_classes=3)
-interface = gr.Interface(classify, sketchpad, label, live=True, capture_session=True)
-
-interface.launch(share=True)
+model.save("PDP_NN")
