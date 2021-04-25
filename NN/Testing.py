@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import gradio as gr
 from sklearn import preprocessing
-
+from keras import Model
 model = load_model("PDP_NN")
 
 #printing most probable number
@@ -94,6 +94,26 @@ def probable_number(output,max_values,number,col):
     #probability of the numbers
     output[4+number*9:7+number*9,8:9+round(max_values[number][0]*18)]=col
     
+def hidden_layer(hidden,hidden_value):
+    #Last layer
+    hidden[:12,:4]=1 #column
+    hidden[:4,:12]=1 #row
+    
+    #Second last layer
+    hidden[4:16,4:8]=2 #column
+    hidden[4:8,4:16]=2 #row
+    
+    #middle layer
+    hidden[8:20,8:12]=3 #column
+    hidden[8:12,8:20]=3 #row
+    
+    #second layer
+    hidden[12:24,12:16]=4 #column
+    hidden[12:16,12:24]=4 #row
+    
+    #first layer
+    hidden[17:,17:]=hidden_value
+    
 def classify(image):
     #print(image.shape)
     image = image/255.0
@@ -108,14 +128,29 @@ def classify(image):
         result = np.zeros((image.shape[0]+10,image.shape[1]+10))
         result[5:image.shape[0]+5,5:image.shape[1]+5] = image
         image = resize(result, (28, 28))
-        matplotlib.image.imsave('outfile.jpg',image)
     image = image.reshape(1,28,28,1)
     prediction = model.predict(image).tolist()[0]
+    
+    #Hidden
+    hidden = np.array([[0 for col in range(28)] for row in range(28)])
+    layer_name = 'conv2d_1'
+    intermediate_layer_model = Model(inputs=model.input,
+                                       outputs=model.get_layer(layer_name).output)
+    intermediate_output = intermediate_layer_model(image)
+    
+    intermediate_output=np.squeeze(intermediate_output)
+    hidden_value=intermediate_output[:,:,0]
+    hidden_layer(hidden,hidden_value)
+    
+    #Output 
     output = np.array([[0 for col in range(28)] for row in range(28)])
     max_values = sorted(zip(prediction,range(10)),reverse=True)[:3]
     probable_number(output,max_values,0,1) #colour for most probable number
     probable_number(output,max_values,1,1) #colour for second most probable number
     probable_number(output,max_values,2,1) #colour for third most probable number
+    
+    #Hidden
+    hidden = np.array([[0 for col in range(28)] for row in range(28)])
     
     #output is our required matrix
     return {str(i): prediction[i] for i in range(10)}
