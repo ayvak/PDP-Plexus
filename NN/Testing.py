@@ -1,24 +1,13 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Feb 22 04:03:50 2021
-
-@author: kavya
-"""
-
-
-
-
 
 import scipy.misc
 from skimage.transform import resize
-import matplotlib
-from keras.models import load_model
+#import matplotlib
+from tensorflow.keras.models import load_model
 import matplotlib.pyplot as plt
 import numpy as np
 import gradio as gr
 from sklearn import preprocessing
-from keras import Model
+from tensorflow.keras import Model
 model = load_model("PDP_NN")
 
 #printing most probable number
