@@ -1,4 +1,3 @@
-
 import scipy.misc
 from skimage.transform import resize
 #import matplotlib
@@ -102,6 +101,7 @@ def hidden_layer(hidden,hidden_value):
     
     #first layer
     hidden[17:,17:]=hidden_value
+    return hidden
     
 def classify(image):
     #print(image.shape)
