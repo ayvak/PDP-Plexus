@@ -136,8 +136,8 @@ def classify(image):
     output = np.array([[0 for col in range(28)] for row in range(28)])
     max_values = sorted(zip(prediction,range(10)),reverse=True)[:3]
     probable_number(output,max_values,0,1) #colour for most probable number
-    probable_number(output,max_values,1,1) #colour for second most probable number
-    probable_number(output,max_values,2,1) #colour for third most probable number
+    probable_number(output,max_values,1,2) #colour for second most probable number
+    probable_number(output,max_values,2,3) #colour for third most probable number
     
     #Hidden
     hidden = np.array([[0 for col in range(28)] for row in range(28)])
