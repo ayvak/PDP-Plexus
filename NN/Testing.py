@@ -100,7 +100,8 @@ def hidden_layer(hidden,hidden_value):
     hidden[12:16,12:24]=4 #row
     
     #first layer
-    hidden[17:,17:]=hidden_value
+    _max = np.max(hidden_value)
+    hidden[17:,17:]=hidden_value * (255 / _max) # changing to (0,255) range
     return hidden
     
 def classify(image):
