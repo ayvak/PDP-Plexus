@@ -9,6 +9,8 @@ from sklearn import preprocessing
 from tensorflow.keras import Model
 model = load_model("PDP_NN")
 
+from send_values import *
+
 #printing most probable number
 def probable_number(output,max_values,number,col):
     #number = 0 -----> Most Probable
@@ -101,7 +103,11 @@ def hidden_layer(hidden,hidden_value):
     
     #first layer
     _max = np.max(hidden_value)
-    hidden[17:,17:]=hidden_value * (255 / _max) # changing to (0,255) range
+    if int(_max):
+        hidden[17:,17:]=hidden_value * (255 / _max) # changing to (0,255) range
+    else:
+        hidden[17:,17:]=hidden_value
+    
     return hidden
     
 def classify(image):
@@ -118,6 +124,9 @@ def classify(image):
         result = np.zeros((image.shape[0]+10,image.shape[1]+10))
         result[5:image.shape[0]+5,5:image.shape[1]+5] = image
         image = resize(result, (28, 28))
+    # print("input")
+    # input layer values
+    _input_layer = (image * 255).flatten().astype(int)
     image = image.reshape(1,28,28,1)
     prediction = model.predict(image).tolist()[0]
     
@@ -131,6 +140,10 @@ def classify(image):
     intermediate_output=np.squeeze(intermediate_output)
     hidden_value=intermediate_output[:,:,0]
     hidden_layer(hidden,hidden_value)
+    # print("hidden")
+    # hidden layer values
+    _hidden_layer = hidden.flatten()
+    # print(", ".join([str(i) for i in hidden[8:,8:].flatten()]))
     
     #Output 
     output = np.array([[0 for col in range(28)] for row in range(28)])
@@ -138,15 +151,26 @@ def classify(image):
     probable_number(output,max_values,0,1) #colour for most probable number
     probable_number(output,max_values,1,2) #colour for second most probable number
     probable_number(output,max_values,2,3) #colour for third most probable number
+    # print("output")
+    # print(", ".join([str(i) for i in output[4:24,4:24].flatten()]))
     
+    _output_layer = output.flatten()
+
+    ### sending values
+    send_values(_input_layer, _hidden_layer, _output_layer)
+
     #Hidden
     hidden = np.array([[0 for col in range(28)] for row in range(28)])
     
     #output is our required matrix
     return {str(i): prediction[i] for i in range(10)}
 
-sketchpad = gr.inputs.Sketchpad()
-label = gr.outputs.Label(num_top_classes=3)
-interface = gr.Interface(classify, sketchpad, label, live=True,interpretation="default", capture_session=True)
+if __name__ == '__main__':
+    # initialise serial
+    # initialize_connection()
 
-interface.launch(share=True)
+    sketchpad = gr.inputs.Sketchpad()
+    label = gr.outputs.Label(num_top_classes=3)
+    interface = gr.Interface(classify, sketchpad, label, live=True,interpretation="default", capture_session=True)
+
+    interface.launch(share=True)
