@@ -154,7 +154,9 @@ def classify(image):
     # print("output")
     # print(", ".join([str(i) for i in output[4:24,4:24].flatten()]))
     
-    _output_layer = output.flatten()
+    # have to rotate the grid 180 deg. flatten after that
+    _output_layer = np.rot90(output, 2)
+    _output_layer = _output_layer.flatten()
 
     ### sending values
     send_values(_input_layer, _hidden_layer, _output_layer)
