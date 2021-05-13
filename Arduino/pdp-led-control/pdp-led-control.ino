@@ -61,8 +61,22 @@ void initLEDMatrix(CRGB leds[NUM_LEDS])
 
 void setInputLEDs(int input_layer[NUM_LEDS])
 {
+  int r, c, ind;
+  CRGB row[NUM_LEDS];
   for(int i = 0; i < NUM_LEDS; i++){
-    _input_LED[i] = CHSV( 200, 255, input_layer[i]);
+    r = i / LAYER_SIZE;
+    c = i % LAYER_SIZE;
+
+    row[r * LAYER_SIZE + c] = CHSV( 200, 255, input_layer[i]);
+     
+    // Assign it to actual hidden layer
+    if (!(r % 2)) // even rows
+      ind = r * LAYER_SIZE + c;
+    else
+      ind = (r+1) * LAYER_SIZE - c - 1;
+      
+    _input_LED[ind] = row[r * LAYER_SIZE + c];
+//    _input_LED[i] = ;
   }
 }
 
