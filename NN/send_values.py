@@ -1,5 +1,6 @@
 import time
 from pySerialTransfer import pySerialTransfer as txfer
+from get_serial_port import get_port
 
 BATCH_SIZE = 28
 DEBUG = False
@@ -8,8 +9,11 @@ link = None
 
 # def initialize_connection():
 
+# get serial port
+port = get_port()
+
 try:
-    link = txfer.SerialTransfer('/dev/ttyACM0')
+    link = txfer.SerialTransfer(port)
     
     link.open()
     time.sleep(2) # allow some time for the Arduino to completely reset
