@@ -22,7 +22,14 @@ CRGB _output_LED[NUM_LEDS];
 #define BATCHES 28
 #define ARRAY_SIZE BATCH_SIZE * BATCHES
 
-enum {_INPUT=1111, _HIDDEN=2222, _OUTPUT=3333};
+// PATTERN
+
+#define ENABLE_PATTERN 1
+const uint8_t kMatrixWidth  = 28;
+const uint8_t kMatrixHeight = 28;
+const bool    kMatrixSerpentineLayout = true;
+
+//////////
 
 // Define arrays
 int _input[ARRAY_SIZE], _hidden[ARRAY_SIZE], _output[ARRAY_SIZE];
@@ -375,6 +382,49 @@ int all_zero()
   return result;
 }
 
+//////////////////////////////////////////////////////////////////////////
+// THE RAINBOW PATTERN
+
+void DrawOneFrame( byte startHue8, int8_t yHueDelta8, int8_t xHueDelta8)
+{
+  byte lineStartHue = startHue8;
+  for( byte y = 0; y < kMatrixHeight; y++) {
+    lineStartHue += yHueDelta8;
+    byte pixelHue = lineStartHue;      
+    for( byte x = 0; x < kMatrixWidth; x++) {
+      pixelHue += xHueDelta8;
+      _input_LED[ XY(x, y)]  = CHSV( pixelHue, 255, 255);
+      _hidden_LED[ XY(x, y)]  = CHSV( pixelHue, 255, 255);
+      _output_LED[ XY(x, y)]  = CHSV( pixelHue, 255, 255);
+    }
+  }
+}
+
+uint16_t XY( uint8_t x, uint8_t y)
+{
+  uint16_t i;
+
+  // to incorporate the mess we made. First LED at bottom left (facepalm)
+  y = kMatrixHeight - 1 - y;
+  
+  if( kMatrixSerpentineLayout == false) {
+    i = (y * kMatrixWidth) + x;
+  } else {
+    if( y & 0x01) {
+      // Odd rows run backwards
+      uint8_t reverseX = (kMatrixWidth - 1) - x;
+      i = (y * kMatrixWidth) + reverseX;
+    } else {
+      // Even rows run forwards
+      i = (y * kMatrixWidth) + x;
+    }
+  }
+  
+  return i;
+}
+
+//////////////////////////////////////////////////////////////////////////
+
 void loop() {
 
   get_layer_values();
@@ -395,6 +445,14 @@ void loop() {
     setInputLEDs(_input);
     setOutputLEDs(_output);
 
+    FastLED.show();
+  }
+  else if(ENABLE_PATTERN)
+  {
+    uint32_t ms = millis();
+    int32_t yHueDelta32 = ((int32_t)cos16( ms * 27 ) * (350 / kMatrixWidth));
+    int32_t xHueDelta32 = ((int32_t)cos16( ms * 39 ) * (310 / kMatrixHeight));
+    DrawOneFrame( ms / 65536, yHueDelta32 / 32768, xHueDelta32 / 32768);
     FastLED.show();
   }
   else
