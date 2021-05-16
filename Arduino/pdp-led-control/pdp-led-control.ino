@@ -18,23 +18,19 @@ CRGB _output_LED[NUM_LEDS];
 #define HIDDEN_ACTUAL_SIZE 12
 #define DEBUG 1
 
-#define BATCH_SIZE 28
-#define BATCHES 28
+#define BATCH_SIZE LAYER_SIZE
+#define BATCHES LAYER_SIZE
 #define ARRAY_SIZE BATCH_SIZE * BATCHES
 
 // PATTERN
 
 #define ENABLE_PATTERN 1
-const uint8_t kMatrixWidth  = 28;
-const uint8_t kMatrixHeight = 28;
+#define TIMEOUT 20000
 const bool    kMatrixSerpentineLayout = true;
-
-//////////
 
 // Define arrays
 int _input[ARRAY_SIZE], _hidden[ARRAY_SIZE], _output[ARRAY_SIZE];
 int flag = -1;
-int count = 0;
 int in_ind = 0, hid_ind = 0, out_ind = 0; // indeices for each layer array
 
 
@@ -317,20 +313,16 @@ void get_layer_values()
         n = 0;
       }
     }
-    Serial.println();
   }
   
 }
 
 
 void setup() {
-  // put your setup code here, to run once:
-
   // Initialise serial
   Serial.begin(115200);
   Serial.setTimeout(1);
   myTransfer.begin(Serial);
-//  Serial.println('1');
 
   //////////////////////////////////////////
   delay(1000);
@@ -362,24 +354,21 @@ void setup() {
   fill_solid(_hidden_LED, NUM_LEDS, CRGB::Black);
   fill_solid(_output_LED, NUM_LEDS, CRGB::Black);
 
-//  get_layer_value(_INPUT);
   Serial.println("setup ends");
 
 }
 
-int all_zero()
+int check_sum()
 {
   /**
-   * check if the input layer values are all zero. 
-   * return 1 if all zeros else return 0
+   * return sum of input layer
    */
 
   int sum = 0;
   for(int i=0; i<ARRAY_SIZE; i++)
     sum += _input[i];
 
-  int result = sum > 0 ? 0 : 1;
-  return result;
+  return sum;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -388,10 +377,10 @@ int all_zero()
 void DrawOneFrame( byte startHue8, int8_t yHueDelta8, int8_t xHueDelta8)
 {
   byte lineStartHue = startHue8;
-  for( byte y = 0; y < kMatrixHeight; y++) {
+  for( byte y = 0; y < LAYER_SIZE; y++) {
     lineStartHue += yHueDelta8;
     byte pixelHue = lineStartHue;      
-    for( byte x = 0; x < kMatrixWidth; x++) {
+    for( byte x = 0; x < LAYER_SIZE; x++) {
       pixelHue += xHueDelta8;
       _input_LED[ XY(x, y)]  = CHSV( pixelHue, 255, 255);
       _hidden_LED[ XY(x, y)]  = CHSV( pixelHue, 255, 255);
@@ -405,57 +394,90 @@ uint16_t XY( uint8_t x, uint8_t y)
   uint16_t i;
 
   // to incorporate the mess we made. First LED at bottom left (facepalm)
-  y = kMatrixHeight - 1 - y;
+  y = LAYER_SIZE - 1 - y;
   
   if( kMatrixSerpentineLayout == false) {
-    i = (y * kMatrixWidth) + x;
+    i = (y * LAYER_SIZE) + x;
   } else {
     if( y & 0x01) {
       // Odd rows run backwards
-      uint8_t reverseX = (kMatrixWidth - 1) - x;
-      i = (y * kMatrixWidth) + reverseX;
+      uint8_t reverseX = (LAYER_SIZE - 1) - x;
+      i = (y * LAYER_SIZE) + reverseX;
     } else {
       // Even rows run forwards
-      i = (y * kMatrixWidth) + x;
+      i = (y * LAYER_SIZE) + x;
     }
   }
   
   return i;
 }
 
+void show_rainbow()
+{
+  uint32_t ms = millis();
+  int32_t yHueDelta32 = ((int32_t)cos16( ms * 27 ) * (350 / LAYER_SIZE));
+  int32_t xHueDelta32 = ((int32_t)cos16( ms * 39 ) * (310 / LAYER_SIZE));
+  DrawOneFrame( ms / 65536, yHueDelta32 / 32768, xHueDelta32 / 32768);
+  FastLED.show();
+}
+
 //////////////////////////////////////////////////////////////////////////
+
+int prev_time = millis();
+int prev_sum = 0;
+int new_input = 1; // to check if the input from the user is new
 
 void loop() {
 
   get_layer_values();
 
-  if(!all_zero())
-  {
-    if(DEBUG == 1){
-      for(int j = 0; j<ARRAY_SIZE; j++){
-        Serial.print(_input[j]);
-        Serial.print("-");
-        Serial.print(_hidden[j]);
-        Serial.print("-");
-        Serial.println(_output[j]);
-      }
-    }
- 
-    setHiddenLEDs(_hidden);
-    setInputLEDs(_input);
-    setOutputLEDs(_output);
+  // check time difference
+  int curr_time = millis();
+  int td = curr_time - prev_time;
+  
+Serial.println(td);
+  
+  int curr_sum = check_sum();  
 
-    FastLED.show();
-  }
-  else if(ENABLE_PATTERN)
+  if(curr_sum != 0) // if there is an input from the user
   {
-    uint32_t ms = millis();
-    int32_t yHueDelta32 = ((int32_t)cos16( ms * 27 ) * (350 / kMatrixWidth));
-    int32_t xHueDelta32 = ((int32_t)cos16( ms * 39 ) * (310 / kMatrixHeight));
-    DrawOneFrame( ms / 65536, yHueDelta32 / 32768, xHueDelta32 / 32768);
-    FastLED.show();
+    if(curr_sum == prev_sum && td > TIMEOUT) // check if the input hasn't changed for TIMEOUT secs
+    {
+      // show rainbow pattern
+      Serial.println("rainbow");
+      show_rainbow();
+      new_input = 1;
+    }
+    else
+    {
+      if(DEBUG == 1){
+        for(int j = 0; j<ARRAY_SIZE; j++){
+          Serial.print(_input[j]);
+          Serial.print("-");
+          Serial.print(_hidden[j]);
+          Serial.print("-");
+          Serial.println(_output[j]);
+        }
+      }
+
+      if(new_input)
+      {
+        // set prev time
+        prev_time = curr_time;
+        new_input = 0;
+      }
+      setHiddenLEDs(_hidden);
+      setInputLEDs(_input);
+      setOutputLEDs(_output);
+      
+      FastLED.show();
+    }
   }
-  else
+  else if(ENABLE_PATTERN) // no input from user and pattern is enabled
+  {
+    show_rainbow();
+  }
+  else // no input from use and no pattern
   {
     // set all LEDs to zero
     fill_solid(_input_LED, NUM_LEDS, CRGB::Black);
@@ -463,4 +485,5 @@ void loop() {
     fill_solid(_output_LED, NUM_LEDS, CRGB::Black);
     FastLED.show();
   }
+  prev_sum = curr_sum;
 }
