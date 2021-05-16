@@ -360,21 +360,49 @@ void setup() {
 
 }
 
+int all_zero()
+{
+  /**
+   * check if the input layer values are all zero. 
+   * return 1 if all zeros else return 0
+   */
+
+  int sum = 0;
+  for(int i=0; i<ARRAY_SIZE; i++)
+    sum += _input[i];
+
+  int result = sum > 0 ? 0 : 1;
+  return result;
+}
+
 void loop() {
 
   get_layer_values();
-  if(DEBUG == 1){
-    for(int j = 0; j<ARRAY_SIZE; j++){
-      Serial.print(_input[j]);
-      Serial.print("-");
-      Serial.print(_hidden[j]);
-      Serial.print("-");
-      Serial.println(_output[j]);
-    }
-  }
-  setHiddenLEDs(_hidden);
-  setInputLEDs(_input);
-  setOutputLEDs(_output);
 
-  FastLED.show();
+  if(!all_zero())
+  {
+    if(DEBUG == 1){
+      for(int j = 0; j<ARRAY_SIZE; j++){
+        Serial.print(_input[j]);
+        Serial.print("-");
+        Serial.print(_hidden[j]);
+        Serial.print("-");
+        Serial.println(_output[j]);
+      }
+    }
+ 
+    setHiddenLEDs(_hidden);
+    setInputLEDs(_input);
+    setOutputLEDs(_output);
+
+    FastLED.show();
+  }
+  else
+  {
+    // set all LEDs to zero
+    fill_solid(_input_LED, NUM_LEDS, CRGB::Black);
+    fill_solid(_hidden_LED, NUM_LEDS, CRGB::Black);
+    fill_solid(_output_LED, NUM_LEDS, CRGB::Black);
+    FastLED.show();
+  }
 }

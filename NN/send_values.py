@@ -66,6 +66,10 @@ def send_values(_input_layer, _hidden_layer, _output_layer):
         # count += 1
         # time.sleep(0.0001)
 
+    # if all elements of input layer is zero, no need to send other layers.
+    if sum(_input_layer) == 0:
+        return
+
     # send hidden indicator
     # send_size = 0
     str_size = link.tx_obj("hh")
