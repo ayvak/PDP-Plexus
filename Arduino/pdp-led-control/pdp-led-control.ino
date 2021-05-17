@@ -25,7 +25,7 @@ CRGB _output_LED[NUM_LEDS];
 // PATTERN
 
 #define ENABLE_PATTERN 1
-#define TIMEOUT 20000
+#define TIMEOUT 50000
 const bool    kMatrixSerpentineLayout = true;
 
 // Define arrays
@@ -476,6 +476,7 @@ Serial.println(td);
   else if(ENABLE_PATTERN) // no input from user and pattern is enabled
   {
     show_rainbow();
+    prev_time = curr_time;
   }
   else // no input from use and no pattern
   {
@@ -483,6 +484,7 @@ Serial.println(td);
     fill_solid(_input_LED, NUM_LEDS, CRGB::Black);
     fill_solid(_hidden_LED, NUM_LEDS, CRGB::Black);
     fill_solid(_output_LED, NUM_LEDS, CRGB::Black);
+    prev_time = curr_time;
     FastLED.show();
   }
   prev_sum = curr_sum;
