@@ -3,11 +3,14 @@
 
 SerialTransfer myTransfer;
 
-#define PIN_INPUT 6
-#define PIN_HIDDEN 7
-#define PIN_OUTPUT 8
-#define LAYER_SIZE 28
-#define NUM_LEDS LAYER_SIZE * LAYER_SIZE
+#define PIN_INPUT           6
+#define PIN_HIDDEN          7
+#define PIN_OUTPUT          8
+#define NETWORK_LAYER_SIZE  28 // size of each layer in the network. All 3 layers have the same size
+#define SCALE_FACTOR        1 // multiplication factor - for specifying the size of the physical layer
+#define LAYER_SIZE          NETWORK_LAYER_SIZE * SCALE_FACTOR // size of physical layer
+#define NUM_LEDS            LAYER_SIZE * LAYER_SIZE
+#define PIXELS              NETWORK_LAYER_SIZE * NETWORK_LAYER_SIZE
 
 int brightness = 60;
 
@@ -18,10 +21,6 @@ CRGB _output_LED[NUM_LEDS];
 #define HIDDEN_ACTUAL_SIZE 12
 #define DEBUG 1
 
-#define BATCH_SIZE LAYER_SIZE
-#define BATCHES LAYER_SIZE
-#define ARRAY_SIZE BATCH_SIZE * BATCHES
-
 // PATTERN
 
 #define ENABLE_PATTERN 1
@@ -29,7 +28,7 @@ CRGB _output_LED[NUM_LEDS];
 const bool    kMatrixSerpentineLayout = true;
 
 // Define arrays
-int _input[ARRAY_SIZE], _hidden[ARRAY_SIZE], _output[ARRAY_SIZE];
+int _input[PIXELS], _hidden[PIXELS], _output[PIXELS];
 int flag = -1;
 int in_ind = 0, hid_ind = 0, out_ind = 0; // indeices for each layer array
 
@@ -61,35 +60,56 @@ void initLEDMatrix(CRGB leds[NUM_LEDS])
   FastLED.delay(200);
 }
 
-
-void setInputLEDs(int input_layer[NUM_LEDS])
+void getIndex(int* index, int i)
 {
-  int r, c, ind;
-  CRGB row[NUM_LEDS];
-  for(int i = 0; i < NUM_LEDS; i++){
-    r = i / LAYER_SIZE;
-    c = i % LAYER_SIZE;
+  int r, c, ind;    // actual layer
+  int _r, _c, _ind; // network layer
+//  int index[2];
 
-    row[r * LAYER_SIZE + c] = CHSV( 200, 255, input_layer[i]);
-     
-    // Assign it to actual hidden layer
-    if (!(r % 2)) // even rows
-      ind = r * LAYER_SIZE + c;
-    else
-      ind = (r+1) * LAYER_SIZE - c - 1;
-      
-    _input_LED[ind] = row[r * LAYER_SIZE + c];
-//    _input_LED[i] = ;
+  // row and column in the physical layer
+  r = i / int(LAYER_SIZE);
+  c = i % int(LAYER_SIZE);
+
+  // corresponding row and column in the network layer
+  _r = r / int(SCALE_FACTOR);
+  _c = c / int(SCALE_FACTOR);
+
+  // network layer index
+  _ind = _r * NETWORK_LAYER_SIZE + _c;
+
+  // actual layer index
+  if (!(r % 2)) // even rows
+    ind = r * int(LAYER_SIZE) + c;
+  else
+    ind = (r+1) * int(LAYER_SIZE) - c - 1;
+
+  index[0] = ind; // physical layer index
+  index[1] = _ind;// network layer index
+
+  return;
+}
+
+void setInputLEDs(int input_layer[PIXELS])
+{
+  Serial.println("input layer fix");
+  for(int i = 0; i < NUM_LEDS; ++i){
+
+    int index[2] = {0};
+    getIndex(index, i);
+
+    int ind = index[0]; // physical layer index
+    int _ind = index[1];// network layer index
+
+    _input_LED[ind] = CHSV( 200, 255, input_layer[_ind]);
   }
 }
 
-
-void setHiddenLEDs(int hidden_layer[NUM_LEDS])
+void setHiddenLEDs(int hidden_layer[PIXELS])
 {
   /* 
   input - all pixel values in row-wise in a single array.
-  if it is considered as a matrix of size LAYER_SIZE x LAYER_SIZE, the grid
-  on the bottom right corner of size HIDDEN_ACTUAL_SIZE x HIDDEN_ACTUAL_SIZE
+  if it is considered as a matrix of size NETWORK_LAYER_SIZE x NETWORK_LAYER_SIZE, 
+  the grid on the bottom right corner of size HIDDEN_ACTUAL_SIZE x HIDDEN_ACTUAL_SIZE
   has the actual values of the hidden layer. Other areas of the matrix given
   as input has the values which represents colours for each dummy layer 
 
@@ -100,23 +120,34 @@ void setHiddenLEDs(int hidden_layer[NUM_LEDS])
     3 - colour for dummy layer 3
     4 - colour for dummy layer 4
 
-  The actual hidden layer area shoudl have a background colour (not black) so
+  The actual hidden layer area should have a background colour (not black) so
   that is it easily visible
 
   */
 
-  int r, c, ind;
-  CRGB row[NUM_LEDS], colour;
+  int r, c, _r, _c;
+  CRGB colour;
   for(int i = 0; i < NUM_LEDS; i++)
   {
-    r = i / LAYER_SIZE;
-    c = i % LAYER_SIZE;
+    // row and column in the physical layer
+    r = i / int(LAYER_SIZE);
+    c = i % int(LAYER_SIZE);
+  
+    // corresponding row and column in the network layer
+    _r = r / int(SCALE_FACTOR);
+    _c = c / int(SCALE_FACTOR);
+
+    int index[2] = {0};
+    getIndex(index, i);
+
+    int ind = index[0]; // physical layer index
+    int _ind = index[1];// network layer index
     
     // rows of extra/dummy layers
-    if ((r < LAYER_SIZE - HIDDEN_ACTUAL_SIZE) || (c < LAYER_SIZE - HIDDEN_ACTUAL_SIZE))
+    if ((_r < NETWORK_LAYER_SIZE - HIDDEN_ACTUAL_SIZE) || (_c < NETWORK_LAYER_SIZE - HIDDEN_ACTUAL_SIZE))
     {
       // assign colours
-      switch (hidden_layer[i]) // change to HSV if needed
+      switch (hidden_layer[_ind]) // change to HSV if needed
       {
       case 4:
         colour = CHSV( 250, 255, 100);
@@ -141,29 +172,19 @@ void setHiddenLEDs(int hidden_layer[NUM_LEDS])
       default:
         break;
       }
-      row[r * LAYER_SIZE + c] = colour; 
     }
     else
     {
       // give a base colour - for values less than 100
-      hidden_layer[i] = hidden_layer[i] > 255 ? 255 : hidden_layer[i];
-      colour = (hidden_layer[i] < 50) ? CHSV( 70, 200, 80) : CHSV( 200, 255, hidden_layer[i]);
-//      row[r * LAYER_SIZE + c] = CHSV( 255, 255, hidden_layer[i]);
-      row[r * LAYER_SIZE + c] = colour;
+      hidden_layer[_ind] = hidden_layer[_ind] > 255 ? 255 : hidden_layer[_ind];
+      colour = (hidden_layer[_ind] < 50) ? CHSV( 70, 200, 80) : CHSV( 200, 255, hidden_layer[_ind]);
     }
 
-    // Assign it to actual hidden layer
-    if (!(r % 2)) // even rows
-      ind = r * LAYER_SIZE + c;
-    else
-      ind = (r+1) * LAYER_SIZE - c - 1;
-      
-    _hidden_LED[ind] = row[r * LAYER_SIZE + c];
+    _hidden_LED[ind] = colour;
   }
-//  FastLED.show();
 }
 
-void setOutputLEDs(int output_layer[NUM_LEDS])
+void setOutputLEDs(int output_layer[PIXELS])
 {
   /* 
   input - all pixel values in row-wise in a single array.
@@ -174,14 +195,16 @@ void setOutputLEDs(int output_layer[NUM_LEDS])
     3 - colour for third highest probable number
   */
 
-  int r, c, ind;
-  CRGB row[NUM_LEDS], colour;
+  CRGB colour;
   for(int i = 0; i < NUM_LEDS; i++)
   {
-    r = i / LAYER_SIZE;
-    c = i % LAYER_SIZE;
+    int index[2] = {0};
+    getIndex(index, i);
 
-    switch ((output_layer[i]))
+    int ind = index[0]; // physical layer index
+    int _ind = index[1];// network layer index
+
+    switch (output_layer[_ind])
     {
     case 3: 
         colour = CHSV( 200, 255, 200);
@@ -202,17 +225,8 @@ void setOutputLEDs(int output_layer[NUM_LEDS])
     default:
       break;
     }
-
-    // 
-    row[r * LAYER_SIZE + c] = colour; 
-
-    // Assign it to actual output layer
-    if (!(r % 2)) // even rows
-      ind = r * LAYER_SIZE + c;
-    else
-      ind = (r+1) * LAYER_SIZE - c - 1;
       
-    _output_LED[ind] = row[r * LAYER_SIZE + c];
+    _output_LED[ind] = colour;
 
   }
 }
@@ -223,7 +237,7 @@ void setOutputLEDs(int output_layer[NUM_LEDS])
 void get_layer_values()
 {
   char c;
-  int input_array[BATCH_SIZE];
+  int input_array[NETWORK_LAYER_SIZE];
   if(myTransfer.available())
   {
     int n = 0, index = 0;
@@ -262,14 +276,14 @@ void get_layer_values()
         if(flag == 0){
 //          Serial.println("adding to input");
           _input[in_ind++] = n;
-          if(in_ind >= ARRAY_SIZE)
+          if(in_ind >= PIXELS)
           {
             in_ind = 0;
             flag = -1;
             setInputLEDs(_input);
             if(DEBUG == 1){
               Serial.println("input added");
-              for(int j = 0; j<ARRAY_SIZE; j++){
+              for(int j = 0; j<PIXELS; j++){
                 Serial.print(_input[j]);
                 Serial.print("-");
               }
@@ -280,13 +294,13 @@ void get_layer_values()
         else if(flag == 1){
 //          Serial.println("adding to hidden");
           _hidden[hid_ind++] = n;
-          if(hid_ind >= ARRAY_SIZE)
+          if(hid_ind >= PIXELS)
           {
             hid_ind = 0;
             flag = -1;
             if(DEBUG == 1){
               Serial.println("hidden added");
-              for(int j = 0; j<ARRAY_SIZE; j++){
+              for(int j = 0; j<PIXELS; j++){
                 Serial.print(_hidden[j]);
                 Serial.print("-");
               }
@@ -297,13 +311,13 @@ void get_layer_values()
          else if(flag == 2) {
 //          Serial.println("adding to output");
           _output[out_ind++] = n;
-          if(out_ind >= ARRAY_SIZE)
+          if(out_ind >= PIXELS)
           {
             out_ind = 0;
             flag = -1;
             if(DEBUG == 1){
               Serial.println("output added");
-              for(int j = 0; j<ARRAY_SIZE; j++){
+              for(int j = 0; j<PIXELS; j++){
                 Serial.print(_output[j]);
                 Serial.print("-");
               }
@@ -365,7 +379,7 @@ int check_sum()
    */
 
   int sum = 0;
-  for(int i=0; i<ARRAY_SIZE; i++)
+  for(int i=0; i<PIXELS; i++)
     sum += _input[i];
 
   return sum;
@@ -435,7 +449,7 @@ void loop() {
   int curr_time = millis();
   int td = curr_time - prev_time;
   
-Serial.println(td);
+  Serial.println(td);
   
   int curr_sum = check_sum();  
 
@@ -445,13 +459,13 @@ Serial.println(td);
     {
       // show rainbow pattern
       Serial.println("rainbow");
-      show_rainbow();
+    //  show_rainbow();
       new_input = 1;
     }
     else
     {
       if(DEBUG == 1){
-        for(int j = 0; j<ARRAY_SIZE; j++){
+        for(int j = 0; j<PIXELS; j++){
           Serial.print(_input[j]);
           Serial.print("-");
           Serial.print(_hidden[j]);
