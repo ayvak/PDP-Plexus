@@ -31,7 +31,7 @@ Since the computer is inside the structure, we have to SSH to the system before 
 -- Once the server is started, a public and a local link will be printed on the console. Copy that before detatching from the screen session
 - detatch screen session `cmd+A, D`
 
-Give the above link in the browser to access the UI.
+Go to above link in the browser to access the UI.
 
 ---
 
@@ -49,15 +49,16 @@ Main code to be uploaded to Teensy is `pdp-led-control.ino` which is in the dire
 #### Parameters
 
 Properties of the layers are defined in the beginning of the file `pdp-led-control.ino`. Below are the parameters, some of them are adjustable.
+
 |Parameter|Default value|Remark|
 ---|---|---
-|`PIN_INPUT`|6|Input layer pin
-|`PIN_HIDDEN`|7|Hidden layer pin
-|`PIN_OUTPUT`|8|Output layer pin
+|PIN_INPUT`|6|Input layer pin|
+|`PIN_HIDDEN`|7|Hidden layer pin|
+|`PIN_OUTPUT`|8|Output layer pin|
 |`NETWORK_LAYER_SIZE`|28|Size of layer in the neural network. It is always 28.
-|`SCALE_FACTOR`|1|This indicates the size of the physical layer. If the physical layer is doubled (56 x 56 LEDs), `SCALE_FACTOR` is 2.
-|`HIDDEN_ACTUAL_SIZE`|12|Size of the grid where the actual values of hidden layers are shown. It is 12 in the neural network, which is not changed.
-|`ENABLE_PATTERN`|1|Enables rainbow pattern when no one uses the system
-|`TIMEOUT`|50000|Sets timeout in mimcroseconds after which the pattern to be displayed (disabled in the code)
+|`SCALE_FACTOR`|1|This indicates the size of the physical layer. If the physical layer is doubled (56 x 56 LEDs), `SCALE_FACTOR` is 2.|
+|`HIDDEN_ACTUAL_SIZE`|12|Size of the grid where the actual values of hidden layers are shown. It is 12 in the neural network, which is not changed.|
+|`ENABLE_PATTERN`|1|Enables rainbow pattern when no one uses the system|
+|`TIMEOUT`|50000|Sets timeout in mimcroseconds after which the pattern to be displayed (disabled in the code)|
 
 **Note**: The hidden layer is inverted when it is fixed on the structure. Correspondingly the code is adjusted to incorporate that. 
