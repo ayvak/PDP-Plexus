@@ -9,13 +9,16 @@ All the files for the neural network (NN) are in the directory `PDP-Plexus/NN`. 
 If this is to be installed in another system, the directory `PDP-Plexus/NN` has to be copied to that system where Python is installed. Below are the packages to be installed. If version numbers are specified along the packages, that particular version has to be installed. Latest versions of other packages can be installed.
 - Python - 3.8.2
 - Tensorflow - 2.4
-- Gradio - 1.3
+- Gradio - 1.5.3
 - Scikit-learn
 - Scipy
 - PySerialTransfer
 - Opencv2
 - Matplotlib
 - Numpy
+
+##### UI changes
+We have changed the default UI of the Gradio interface. Corresponding files are present in the attached zip file. This zip file is the compressed Gradio library. After installing the Gradio library, the static folder of the library with the one inside the zip file (at location `gradio/static`). The installation location of library can be found using the command `pip show gradio`. In case gradio is updated, the `static` folder has to be replaced with the given files.
 
 **Note**: 
 1. It is required to give a manual IP for the system as we have to SSH to it to start and stop the NN server.
